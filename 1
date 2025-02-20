@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>trtl</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    body { background: #FFFFFF; font-family: 'Montserrat', sans-serif; margin: 0; padding: 0; }
+    .container { text-align: center; padding: 20px; }
+    .counter { background: #E0E0E0; padding: 10px; font-size: 24px; color: #000000; }
+    .coin { width: 200px; height: 200px; background: #D3D3D3; border: 2px solid #000000; border-radius: 50%; margin: 20px auto; cursor: pointer; }
+    .coin:active { transform: scale(1.05); }
+    .tabs { display: flex; justify-content: space-around; }
+    .tab { background: #C0C0C0; color: #000000; padding: 10px 20px; border: none; cursor: pointer; }
+    .tab.active { background: #FFFFFF; border: 2px solid #000000; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="counter">Монетки: <span id="coins">0.00000</span></div>
+    <div class="coin" id="coin-area"></div>
+    <div class="tabs">
+      <button class="tab" id="earn-tab">Earn</button>
+      <button class="tab" id="withdraw-tab">Withdraw</button>
+      <button class="tab" id="upgrade-tab">Upgrade</button>
+    </div>
+  </div>
+
+  <script>
+    const tg = window.Telegram.WebApp;
+    tg.ready();
+    let coins = 0;
+    let referrals = 0;
+    let passiveLevel = 0;
+    let clickLevel = 0;
+    let passiveIncome = 0;
+    let clickBonus = 0;
+
+    // Клик по монетке
+    document.getElementById('coin-area').addEventListener('click', () => {
+      const increment = 0.00001 + Math.random() * (0.0001 - 0.00001) + clickBonus;
+      coins += increment;
+      document.getElementById('coins').textContent = coins.toFixed(5);
+    });
+
+    // Вкладка Earn
+    document.getElementById('earn-tab').addEventListener('click', () => {
+      tg.showPopup({
+        title: 'Earn Coins',
+        message: 'Выберите задание:\n1. Подписка на TG (+0.5)\n2. Подписка на X (+0.5)\n3. Репост в историю (+2)\n4. 5 рефералов (+1 TON)',
+        buttons: [
+          { id: 'tg-sub', text: 'TG Подписка' },
+          { id: 'x-sub', text: 'X Подписка' },
+          { id: 'repost', text: 'Репост' },
+          { id: 'ref', text: `Рефералы: ${referrals}` }
+        ]
+      }, (buttonId) => {
+        if (buttonId === 'tg-sub') reward(0.5, 'TG подписку');
+        if (buttonId === 'x-sub') reward(0.5, 'X подписку');
+        if (buttonId === 'repost') reward(2, 'репост');
+        if (buttonId === 'ref' && referrals >= 5) rewardTon(1);
+      });
+    });
+
+    // Вкладка Withdraw
+    document.getElementById('withdraw-tab').addEventListener('click', () => {
+      tg.showPopup({
+        title: 'Withdraw',
+        message: 'Привяжите кошелек TON и ожидайте дроп.',
+        buttons: [{ id: 'link', text: 'Привязать кошелек' }]
+      });
+    });
+
+    // Вкладка Upgrade
+    document.getElementById('upgrade-tab').addEventListener('click', () => {
+      tg.showPopup({
+        title: 'Upgrade',
+        message: `Пассивный доход: Ур. ${passiveLevel} (${passiveIncome}/мин)\nКлик: Ур. ${clickLevel} (+${clickBonus})`,
+        buttons: [
+          { id: 'passive', text: `Пассивный ур. ${passiveLevel + 1} (${0.9 * (passiveLevel + 1)})` },
+          { id: 'click', text: `Клик ур. ${clickLevel + 1} (${clickLevel + 1})` }
+        ]
+      }, (buttonId) => {
+        if (buttonId === 'passive' && coins >= 0.9 * (passiveLevel + 1)) {
+          coins -= 0.9 * (passiveLevel + 1);
+          passiveLevel++;
+          passiveIncome = 0.001 * passiveLevel;
+          startPassiveIncome();
+        }
+        if (buttonId === 'click' && coins >= (clickLevel + 1)) {
+          coins -= (clickLevel + 1);
+          clickLevel++;
+          clickBonus = 0.00005 * clickLevel;
+        }
+        document.getElementById('coins').textContent = coins.toFixed(5);
+      });
+    });
+
+    // Функции
+    function reward(amount, type) {
+      coins += amount;
+      document.getElementById('coins').textContent = coins.toFixed(5);
+      tg.showAlert(`Вы получили ${amount} монеток за ${type}!`);
+    }
+
+    function rewardTon(amount) {
+      tg.showAlert(`Вы получили ${amount} TON за рефералов!`);
+    }
+
+    function startPassiveIncome() {
+      setInterval(() => {
+        coins += passiveIncome;
+        document.getElementById('coins').textContent = coins.toFixed(5);
+      }, 60000); // Каждую минуту
+    }
+  </script>
+</body>
+</html>
